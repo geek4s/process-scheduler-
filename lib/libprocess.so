@@ -1,0 +1,115 @@
+// ============================================================================
+// process_lib.c
+// Unified backend for Process Scheduler
+// Compiles to: ../lib/libprocess.so
+// ============================================================================
+
+#include "process_manager.h"
+#include "statistics_manager.h"
+#include <stdio.h>
+
+// ---------------------------------------------------------------------------
+// Global Ready Queue (shared by all functions)
+// ---------------------------------------------------------------------------
+static ProcessQueue globalQueue;
+
+// ---------------------------------------------------------------------------
+// Initialize Queue
+// ---------------------------------------------------------------------------
+int init_queue() {
+    initQueue(&globalQueue);
+    printf("[libprocess] Queue initialized.\n");
+    return 0;
+}
+
+// ---------------------------------------------------------------------------
+// Add Process (called from Python via ctypes)
+// ---------------------------------------------------------------------------
+int add_process(int pid, int arrival_time, int burst_time) {
+    return addProcess(&globalQueue, pid, arrival_time, burst_time);
+}
+
+// ---------------------------------------------------------------------------
+// Delete Process (called from Python via ctypes)
+// ---------------------------------------------------------------------------
+int delete_process(int pid) {
+    return deleteProcess(&globalQueue, pid);
+}
+
+// ---------------------------------------------------------------------------
+// Get total process count
+// ---------------------------------------------------------------------------
+int get_process_count() {
+    return getProcessCount(&globalQueue);
+}
+
+// ---------------------------------------------------------------------------
+// Get process list (for Python GUI table)
+// ---------------------------------------------------------------------------
+// Parameters:
+//   int* pids      → filled with process IDs
+//   int* arrivals  → filled with arrival times
+//   int* bursts    → filled with burst times
+//   int max_count  → max array length
+// Returns:
+//   number of processes copied
+// ---------------------------------------------------------------------------
+int get_process_list(int *pids, int *arrivals, int *bursts, int max_count) {
+    int n = globalQueue.count;
+    if (n > max_count) n = max_count;
+
+    for (int i = 0; i < n; i++) {
+        pids[i] = globalQueue.processes[i].pid;
+        arrivals[i] = globalQueue.processes[i].arrival_time;
+        bursts[i] = globalQueue.processes[i].burst_time;
+    }
+    return n;
+}
+
+// ---------------------------------------------------------------------------
+// Compute statistics (average waiting & turnaround time)
+// ---------------------------------------------------------------------------
+int compute_stats(double *avg_wait, double *avg_turn) {
+    if (globalQueue.count == 0) {
+        *avg_wait = 0.0;
+        *avg_turn = 0.0;
+        return 0;
+    }
+
+    SchedulerStats stats = computeStatistics(&globalQueue);
+    *avg_wait = stats.avg_waiting_time;
+    *avg_turn = stats.avg_turnaround_time;
+
+    return 0;  // success
+}
+
+// ---------------------------------------------------------------------------
+// Debug helper: print current queue (for CLI test)
+// ---------------------------------------------------------------------------
+void show_queue_cli() {
+    printf("\n--- Current Queue (from libprocess) ---\n");
+    displayQueue(&globalQueue);
+}
+
+// ---------------------------------------------------------------------------
+// Optional CLI test
+// Compile and run manually: gcc process_lib.c process_manager.c statistics_manager.c -DTEST_LIB -o test_lib
+// ---------------------------------------------------------------------------
+#ifdef TEST_LIB
+int main() {
+    init_queue();
+    add_process(1, 0, 5);
+    add_process(2, 2, 3);
+    add_process(3, 4, 1);
+    show_queue_cli();
+
+    double avg_wait, avg_turn;
+    compute_stats(&avg_wait, &avg_turn);
+    printf("\nAvg Waiting Time: %.2f\nAvg Turnaround Time: %.2f\n", avg_wait, avg_turn);
+
+    delete_process(2);
+    show_queue_cli();
+
+    return 0;
+}
+#endif
