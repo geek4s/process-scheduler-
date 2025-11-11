@@ -1,15 +1,17 @@
 #include "scheduler.h"
 
-// ========================
-// 🧠 Queue Operations
-// ========================
+// ===================================================
+// 🧩 Queue Operations (Linked List Implementation)
+// ===================================================
 
-// Enqueue a process to the ready queue
+// Function: enqueue()
+// Adds a process to the end of the ready queue.
 void enqueue(Queue *q, Process *p) {
-    if (!p) return;
+    if (!p) return; // Null check
     p->next = NULL;
 
-    if (q->rear == NULL) { // empty queue
+    if (q->rear == NULL) {
+        // Empty queue → first element
         q->front = q->rear = p;
     } else {
         q->rear->next = p;
@@ -18,61 +20,68 @@ void enqueue(Queue *q, Process *p) {
     q->size++;
 }
 
-// Dequeue (remove) a process from the front
-Process* dequeue(Queue *q) {
+// Function: dequeue()
+// Removes and returns the process at the front of the queue.
+Process *dequeue(Queue *q) {
     if (is_empty(q)) return NULL;
 
     Process *temp = q->front;
     q->front = q->front->next;
 
-    if (q->front == NULL) q->rear = NULL;
+    if (q->front == NULL) {
+        q->rear = NULL; // Queue becomes empty
+    }
 
     q->size--;
-    temp->next = NULL;
+    temp->next = NULL; // Isolate dequeued node
     return temp;
 }
 
-// Check if queue is empty
+// Function: is_empty()
+// Checks if the queue is empty.
 int is_empty(Queue *q) {
     return (q->front == NULL);
 }
 
-// Display queue contents
+// Function: display_queue()
+// Displays the contents of the ready queue.
 void display_queue(Queue *q) {
     if (is_empty(q)) {
-        printf("\n[Queue Empty]\n");
+        printf("\n[Queue is Empty]\n");
         return;
     }
 
-    printf("\nReady Queue: ");
+    printf("\n🔁 Ready Queue: ");
     Process *temp = q->front;
-    while (temp) {
+    while (temp != NULL) {
         printf("[%d|%s] -> ", temp->pid, temp->name);
         temp = temp->next;
     }
     printf("NULL\n");
 }
 
-// ========================
-// 🧠 Process Management
-// ========================
+// ===================================================
+// 🧩 Process Management
+// ===================================================
 
-// Create a new process interactively
+// Function: create_process()
+// Interactively creates a new process and adds it to the list.
 void create_process(Process processes[], int *count) {
     if (*count >= MAX_PROCESSES) {
-        printf("⚠️ Process limit reached!\n");
+        printf("⚠️  Maximum process limit reached!\n");
         return;
     }
 
     Process *p = &processes[*count];
+    printf("\n--- Create New Process ---\n");
 
-    printf("\nEnter Process ID: ");
+    printf("Enter Process ID: ");
     scanf("%d", &p->pid);
 
-    // Check duplicate PID
+    // Validate duplicate PID
     for (int i = 0; i < *count; i++) {
         if (processes[i].pid == p->pid) {
-            printf("❌ Error: PID already exists!\n");
+            printf("❌ Error: Process ID already exists!\n");
             return;
         }
     }
@@ -86,7 +95,7 @@ void create_process(Process processes[], int *count) {
     printf("Enter Priority: ");
     scanf("%d", &p->priority);
 
-    // Initialize computed fields
+    // Initialize process defaults
     p->remaining_time = p->burst_time;
     p->completion_time = 0;
     p->waiting_time = 0;
@@ -95,58 +104,70 @@ void create_process(Process processes[], int *count) {
     p->next = NULL;
 
     (*count)++;
-    printf("✅ Process created successfully!\n");
+    printf("✅ Process [%d - %s] created successfully!\n", p->pid, p->name);
 }
 
-// Delete a process by PID
+// Function: delete_process()
+// Deletes a process with the given PID from the array.
 void delete_process(Process processes[], int *count, int pid) {
+    if (*count == 0) {
+        printf("⚠️  No processes available to delete.\n");
+        return;
+    }
+
     int found = 0;
     for (int i = 0; i < *count; i++) {
         if (processes[i].pid == pid) {
             found = 1;
-            // Shift elements
             for (int j = i; j < *count - 1; j++) {
                 processes[j] = processes[j + 1];
             }
             (*count)--;
-            printf("🗑️ Process with PID %d deleted.\n", pid);
+            printf("🗑️  Process with PID %d deleted successfully.\n", pid);
             break;
         }
     }
+
     if (!found) {
-        printf("❌ No process found with PID %d.\n", pid);
+        printf("❌ Error: No process found with PID %d.\n", pid);
     }
 }
 
-// ========================
-// 🧠 CSV Loading
-// ========================
+// ===================================================
+// 🧩 CSV File Loading
+// ===================================================
 
+// Function: load_processes_from_csv()
+// Reads processes from a CSV file formatted as:
+// pid,name,arrival_time,burst_time,priority
 void load_processes_from_csv(const char *filename, Process processes[], int *count) {
     FILE *fp = fopen(filename, "r");
     if (!fp) {
-        printf("❌ Error: Cannot open file %s\n", filename);
+        printf("❌ Error: Could not open file '%s'\n", filename);
         return;
     }
 
     char line[256];
-    int line_number = 0;
+    int line_num = 0;
     *count = 0;
 
     while (fgets(line, sizeof(line), fp)) {
-        if (line_number == 0 && strstr(line, "pid")) {
-            // Skip header line
-            line_number++;
+        // Skip header line if present
+        if (line_num == 0 && strstr(line, "pid")) {
+            line_num++;
             continue;
         }
 
         Process *p = &processes[*count];
-        if (sscanf(line, "%d,%[^,],%d,%d,%d",
-                   &p->pid, p->name,
-                   &p->arrival_time,
-                   &p->burst_time,
-                   &p->priority) == 5) {
+        int read_fields = sscanf(line, "%d,%[^,],%d,%d,%d",
+                                 &p->pid,
+                                 p->name,
+                                 &p->arrival_time,
+                                 &p->burst_time,
+                                 &p->priority);
 
+        if (read_fields == 5) {
+            // Initialize computed fields
             p->remaining_time = p->burst_time;
             p->completion_time = 0;
             p->waiting_time = 0;
@@ -157,11 +178,12 @@ void load_processes_from_csv(const char *filename, Process processes[], int *cou
 
             if (*count >= MAX_PROCESSES) break;
         } else {
-            printf("⚠️ Skipping invalid line %d: %s", line_number + 1, line);
+            printf("⚠️  Skipping invalid line %d: %s", line_num + 1, line);
         }
-        line_number++;
+
+        line_num++;
     }
 
     fclose(fp);
-    printf("✅ Loaded %d processes from %s\n", *count, filename);
+    printf("✅ Loaded %d processes from '%s'\n", *count, filename);
 }
