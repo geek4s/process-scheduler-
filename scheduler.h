@@ -7,7 +7,6 @@
 #define TIME_SLICE 4
 
 // ===================== PROCESS STRUCT =====================
-
 typedef struct {
     int pid;
     int arrival;
@@ -24,7 +23,6 @@ typedef struct {
 
 
 // ===================== FIFO QUEUE (FCFS) =====================
-
 typedef struct {
     int data[MAX_PROCESSES];
     int front;
@@ -38,7 +36,6 @@ int fifo_pop(FIFOQueue *q);
 
 
 // ===================== CIRCULAR QUEUE (ROUND ROBIN) =====================
-
 typedef struct {
     int data[MAX_PROCESSES];
     int front;
@@ -52,13 +49,13 @@ void cq_push(CircularQueue *q, int value);
 int cq_pop(CircularQueue *q);
 
 
-// ===================== MIN HEAP (ARRAY-BASED) =====================
+// ===================== MIN HEAP (ARRAY) =====================
 // Used for SJF, SRTF, Priority Scheduling
 
 typedef struct {
     int size;
-    int idx[MAX_PROCESSES];   // store process indexes
-    int key[MAX_PROCESSES];   // sorting key (burst, remaining, priority)
+    int idx[MAX_PROCESSES];  
+    int key[MAX_PROCESSES];
 } MinHeap;
 
 void heap_init(MinHeap *h);

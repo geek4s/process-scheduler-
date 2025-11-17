@@ -6,7 +6,7 @@
 Process processes[MAX_PROCESSES];
 int n;
 
-// =================== LOAD INPUT ===================
+// Input csv
 // Format: pid,arrival,burst,priority
 
 void load_input() {

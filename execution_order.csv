@@ -2,12 +2,21 @@ time,pid,event
 0,1,start or preempted switch
 1,2,start or preempted switch
 5,2,finish
-5,4,start or preempted switch
+5,1,start or preempted switch
 6,5,start or preempted switch
 8,5,finish
-8,4,start or preempted switch
-12,4,finish
+8,1,start or preempted switch
+9,4,start or preempted switch
+10,1,start or preempted switch
+11,4,start or preempted switch
 12,1,start or preempted switch
+13,4,start or preempted switch
+14,1,start or preempted switch
+15,4,start or preempted switch
+16,1,start or preempted switch
+17,4,start or preempted switch
+18,4,finish
+18,1,start or preempted switch
 19,1,finish
 19,3,start or preempted switch
 28,3,finish

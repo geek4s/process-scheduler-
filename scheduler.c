@@ -1,7 +1,6 @@
 #include "scheduler.h"
 #include <stdlib.h>
 #include <string.h>
-
 static FILE *exec_fp = NULL;
 
 /* =============== FIFO QUEUE for FCFS ======================= */
@@ -23,7 +22,7 @@ int fifo_pop(FIFOQueue *q) {
     return q->data[q->front++];
 }
 
-/* =============== CIRCULAR QUEUE (RR) ========================= */
+/* =============== CIRCULAR QUEUE for ROUND ROBIN ========================= */
 
 void cq_init(CircularQueue *q) {
     q->front = 0;
@@ -49,7 +48,7 @@ int cq_pop(CircularQueue *q) {
 }
 
 
-/* ==================== MIN HEAP (SJF/SRTF/PRI) ================*/
+/* ==================== MIN HEAP for SJF/SRTF/PRIORITY ================*/
 
 static void heap_swap(MinHeap *h, int a, int b) {
     int tmp_idx = h->idx[a];
@@ -71,7 +70,6 @@ void heap_push(MinHeap *h, int process_index, int key) {
     h->idx[i] = process_index;
     h->key[i] = key;
 
-    // up-heap
     while (i != 0) {
         int parent = (i - 1) / 2;
         if (h->key[parent] <= h->key[i])
@@ -93,7 +91,6 @@ int heap_pop(MinHeap *h) {
 
     int i = 0;
 
-    // down-heap
     while (1) {
         int left = 2*i + 1;
         int right = 2*i + 2;
@@ -114,13 +111,11 @@ int heap_pop(MinHeap *h) {
     return ret;
 }
 
-// update key of a process already in heap
 void heap_update_key(MinHeap *h, int process_index, int newkey) {
     for (int i = 0; i < h->size; i++) {
         if (h->idx[i] == process_index) {
             h->key[i] = newkey;
 
-            // up-heap
             int cur = i;
             while (cur != 0) {
                 int parent = (cur - 1) / 2;
@@ -130,7 +125,6 @@ void heap_update_key(MinHeap *h, int process_index, int newkey) {
                 cur = parent;
             }
 
-            // down-heap too (covers both directions)
             while (1) {
                 int left = 2*cur + 1;
                 int right = 2*cur + 2;
@@ -178,9 +172,7 @@ void write_execution_order_csv(int time, int pid, const char *event) {
 }
 
 
-/* ============================================================
-   ===================== RESET + STATS =========================
-   ============================================================ */
+/* ===================== RESET + STATS ========================= */
 
 void reset_processes(Process p[], int n) {
     for (int i = 0; i < n; i++) {
@@ -207,9 +199,7 @@ void calculate_final_stats(Process p[], int n) {
     }
 }
 
-/* ============================================================
-   ========================== FCFS =============================
-   ============================================================ */
+/*========================== FCFS ============================= */
 
 void fcfs(Process p[], int n) {
     FIFOQueue q;
@@ -257,10 +247,8 @@ void fcfs(Process p[], int n) {
 }
 
 
-/* ============================================================
-   ========================== SJF ==============================
-   ============ Non-preemptive, heap-based =====================
-   ============================================================ */
+/* ========================== SJF ==============================
+   ============ Non-preemptive, heap-based ===================== */
 
 void sjf(Process p[], int n) {
     MinHeap h;
@@ -281,7 +269,6 @@ void sjf(Process p[], int n) {
 
     while (completed < n) {
 
-        // push newly arrived processes to heap (key = burst)
         while (arrived < n && p[arrived].arrival <= time) {
             heap_push(&h, arrived, p[arrived].burst);
             arrived++;
@@ -292,7 +279,6 @@ void sjf(Process p[], int n) {
             continue; 
         }
 
-        // get process with shortest burst
         int idx = heap_pop(&h);
 
         write_execution_order_csv(time, p[idx].pid, "start");
@@ -308,10 +294,8 @@ void sjf(Process p[], int n) {
     calculate_final_stats(p, n);
 }
 
-/* ============================================================
-   ============================ SRTF ===========================
-   ============ Preemptive SJF using a real min-heap ===========
-   ============================================================ */
+/* ============================ SRTF ===========================
+   ============ Preemptive SJF using a real min-heap =========== */
 
 void srtf(Process p[], int n) {
     MinHeap h;
@@ -349,7 +333,7 @@ void srtf(Process p[], int n) {
 
         // Log start or preemption switch
         if (idx != last_running) {
-            write_execution_order_csv(time, p[idx].pid, "start or preempted switch");
+            write_execution_order_csv(time, p[idx].pid, "preempted switch");
         }
 
         last_running = idx;
@@ -388,10 +372,8 @@ void srtf(Process p[], int n) {
     calculate_final_stats(p, n);
 }
 
-/* ============================================================
-   ===================== PRIORITY PREEMPTIVE ===================
-   ============= Using a min-heap keyed by priority =============
-   ============================================================ */
+/* ===================== PRIORITY PREEMPTIVE ===================
+   ============= Using a min-heap keyed by priority ============= */
 
 void priority_preemptive(Process p[], int n) {
     MinHeap h;
@@ -429,7 +411,7 @@ void priority_preemptive(Process p[], int n) {
 
         // Check for switch/preemption
         if (idx != last_running) {
-            write_execution_order_csv(time, p[idx].pid, "start or preempted switch");
+            write_execution_order_csv(time, p[idx].pid, "preempted switch");
         }
         last_running = idx;
 
@@ -462,10 +444,8 @@ void priority_preemptive(Process p[], int n) {
     calculate_final_stats(p, n);
 }
 
-/* ============================================================
-   ========================= ROUND ROBIN =======================
-   ================= Circular Queue Implementation ==============
-   ============================================================ */
+/* ========================= ROUND ROBIN =======================
+   ================= Circular Queue Implementation ============== */
 
 void round_robin(Process p[], int n) {
     CircularQueue q;
